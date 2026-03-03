@@ -1,0 +1,36 @@
+services:
+  mongo:
+    image: mongo:8
+    container_name: app-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-backend
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - Mongo__ConnectionString=mongodb://mongo:27017
+      - Mongo__DatabaseName=appdb
+      - Mongo__TodosCollectionName=todos
+    ports:
+      - "5187:8080"
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: app-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:

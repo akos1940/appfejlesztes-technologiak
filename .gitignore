@@ -1,0 +1,25 @@
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# .NET
+**/bin/
+**/obj/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Env files
+.env
+.env.*
