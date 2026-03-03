@@ -4,7 +4,7 @@
     <div class="controls">
       <label>
         Oldalméret
-        <select [value]="pageSize" (change)="changePageSize($any($event.target).value)">
+        <select [value]="pageSize()" (change)="changePageSize($any($event.target).value)">
           <option [value]="5">5</option>
           <option [value]="10">10</option>
           <option [value]="20">20</option>
@@ -14,10 +14,10 @@
     </div>
   </header>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p *ngIf="loading">Betöltés...</p>
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p *ngIf="loading()">Betöltés...</p>
 
-  <table class="table" *ngIf="!loading">
+  <table class="table" *ngIf="!loading()">
     <thead>
       <tr>
         <th>Cím</th>
@@ -28,7 +28,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let item of items">
+      <tr *ngFor="let item of items()">
         <td>
           <a [routerLink]="['/todos', item.id]">{{ item.title }}</a>
           <div class="muted" *ngIf="item.description">{{ item.description }}</div>
@@ -40,15 +40,15 @@
           <button class="button danger" (click)="delete(item)">Törlés</button>
         </td>
       </tr>
-      <tr *ngIf="items.length === 0">
+      <tr *ngIf="items().length === 0">
         <td colspan="5" class="muted">Nincs elem.</td>
       </tr>
     </tbody>
   </table>
 
-  <footer class="pager" *ngIf="!loading">
-    <button class="button" [disabled]="page <= 1" (click)="goToPage(page - 1)">Előző</button>
-    <span class="muted">{{ page }} / {{ totalPages() }} (összesen: {{ total }})</span>
-    <button class="button" [disabled]="page >= totalPages()" (click)="goToPage(page + 1)">Következő</button>
+  <footer class="pager" *ngIf="!loading()">
+    <button class="button" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">Előző</button>
+    <span class="muted">{{ page() }} / {{ totalPages() }} (összesen: {{ total() }})</span>
+    <button class="button" [disabled]="page() >= totalPages()" (click)="goToPage(page() + 1)">Következő</button>
   </footer>
 </section>

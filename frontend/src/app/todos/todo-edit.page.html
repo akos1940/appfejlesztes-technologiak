@@ -1,13 +1,13 @@
 <section class="page">
   <header class="page-header">
-    <h1>{{ id ? 'Szerkesztés' : 'Új feladat' }}</h1>
+    <h1>{{ id() ? 'Szerkesztés' : 'Új feladat' }}</h1>
     <a class="button" routerLink="/todos">Vissza</a>
   </header>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
-  <p *ngIf="loading">Betöltés...</p>
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p *ngIf="loading()">Betöltés...</p>
 
-  <form *ngIf="!loading" (ngSubmit)="save()" class="form">
+  <form *ngIf="!loading()" (ngSubmit)="save()" class="form">
     <label>
       Cím
       <input type="text" [(ngModel)]="title" name="title" required maxlength="200" />
@@ -29,7 +29,7 @@
     </label>
 
     <div class="actions">
-      <button class="button primary" type="submit" [disabled]="saving">{{ saving ? 'Mentés...' : 'Mentés' }}</button>
+      <button class="button primary" type="submit" [disabled]="saving()">{{ saving() ? 'Mentés...' : 'Mentés' }}</button>
     </div>
   </form>
 </section>

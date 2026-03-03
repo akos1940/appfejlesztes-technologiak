@@ -59,4 +59,36 @@ public sealed class TodoRepository
         var result = await _context.Todos.DeleteOneAsync(x => x.Id == id, ct);
         return result.DeletedCount == 1;
     }
+
+    public async Task EnsureSeededAsync(CancellationToken ct)
+    {
+        var desiredTitles = new[] { "tej", "kenyér", "tojás" };
+
+        var existingTitles = await _context.Todos
+            .Find(Builders<TodoItem>.Filter.In(x => x.Title, desiredTitles))
+            .Project(x => x.Title)
+            .ToListAsync(ct);
+
+        var missingTitles = desiredTitles
+            .Where(t => !existingTitles.Contains(t, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (missingTitles.Length == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var items = missingTitles
+            .Select((title, index) => new TodoItem
+            {
+                Title = title,
+                Description = "Seed adat",
+                IsCompleted = false,
+                CreatedAt = now.AddSeconds(-index),
+            })
+            .ToArray();
+
+        await _context.Todos.InsertManyAsync(items, cancellationToken: ct);
+    }
 }

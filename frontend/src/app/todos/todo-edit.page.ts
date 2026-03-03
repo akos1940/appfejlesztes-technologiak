@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, finalize, of, startWith, timeout } from 'rxjs';
 import { TodoService } from './todo.service';
 import { CreateTodoRequest, TodoItem } from './todo.models';
 
@@ -18,10 +19,10 @@ export class TodoEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  id: string | null = null;
-  loading = true;
-  saving = false;
-  error: string | null = null;
+  readonly id = signal<string | null>(null);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly error = signal<string | null>(null);
 
   title = '';
   description = '';
@@ -29,25 +30,35 @@ export class TodoEditPage {
   dueAtLocal: string = '';
 
   constructor() {
-    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe((params) => {
-      this.id = params.get('id');
-      if (!this.id) {
-        this.loading = false;
-        return;
-      }
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(), startWith(this.route.snapshot.paramMap))
+      .subscribe((params) => {
+        const id = params.get('id');
+        this.id.set(id);
+        this.error.set(null);
 
-      this.loading = true;
-      this.service.getById(this.id).subscribe({
-        next: (item) => {
-          this.loadFromItem(item);
-          this.loading = false;
-        },
-        error: () => {
-          this.error = 'Nem található elem.';
-          this.loading = false;
-        },
+        if (!id) {
+          this.loading.set(false);
+          return;
+        }
+
+        this.loading.set(true);
+        this.service
+          .getById(id)
+          .pipe(
+            timeout({ first: 10000 }),
+            catchError((err: any) => {
+              console.error('Todo betöltés hiba', err);
+              this.error.set('Nem található elem.');
+              return of(null);
+            }),
+            finalize(() => this.loading.set(false))
+          )
+          .subscribe((item) => {
+            if (!item) return;
+            this.loadFromItem(item);
+          });
       });
-    });
   }
 
   private loadFromItem(item: TodoItem) {
@@ -74,37 +85,38 @@ export class TodoEditPage {
   }
 
   async save() {
-    this.error = null;
+    this.error.set(null);
     if (!this.title.trim()) {
-      this.error = 'A cím kötelező.';
+      this.error.set('A cím kötelező.');
       return;
     }
 
-    this.saving = true;
+    this.saving.set(true);
     const request = this.buildRequest();
 
-    if (!this.id) {
+    const id = this.id();
+    if (!id) {
       this.service.create(request).subscribe({
         next: async () => {
-          this.saving = false;
+          this.saving.set(false);
           await this.router.navigate(['/todos']);
         },
         error: () => {
-          this.error = 'Mentés nem sikerült.';
-          this.saving = false;
+          this.error.set('Mentés nem sikerült.');
+          this.saving.set(false);
         },
       });
       return;
     }
 
-    this.service.replace(this.id, request).subscribe({
+    this.service.replace(id, request).subscribe({
       next: async () => {
-        this.saving = false;
+        this.saving.set(false);
         await this.router.navigate(['/todos']);
       },
       error: () => {
-        this.error = 'Mentés nem sikerült.';
-        this.saving = false;
+        this.error.set('Mentés nem sikerült.');
+        this.saving.set(false);
       },
     });
   }

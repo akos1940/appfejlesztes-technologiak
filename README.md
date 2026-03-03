@@ -42,6 +42,37 @@ Teljes törlés (adatbázis volume is):
 docker compose down -v
 ```
 
+## Megosztás / futtatás más gépen
+
+Ha megosztod a repót valakivel, így tudja kipróbálni a saját gépén:
+
+Előfeltételek:
+
+- Docker Desktop telepítve és fut (Windows/Mac/Linux)
+- Git telepítve (vagy a repo letöltése ZIP-ként GitHub-ról)
+
+Lépések:
+
+```bash
+git clone https://github.com/akos1940/appfejlesztes-technologiak
+cd appfejlesztes-technologiak
+docker compose up --build -d
+```
+
+Ellenőrzés:
+
+- UI: http://localhost:8080/todos
+- Backend health: http://localhost:5187/api/health
+- Backend todos JSON: http://localhost:5187/api/todos?page=1&pageSize=10
+
+Leállítás:
+
+```bash
+docker compose down
+```
+
+Tipp: ha a `localhost` nem elérhető, általában a Docker engine nem fut — indítsa el a Docker Desktopot, majd futtassa újra a `docker compose up -d` parancsot.
+
 ## Futtatás lokálisan (Docker nélkül a FE/BE-hez)
 
 Előfeltétel:
