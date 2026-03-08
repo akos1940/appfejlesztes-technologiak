@@ -1,34 +1,46 @@
-# Alkalmazásfejlesztés technológiái – Projektfeladat
+# Alkalmazásfejlesztés technológiái – Projektfeladat (Todo)
 
-Egyszerű full-stack példa alkalmazás (Todo lista) e2e folyamattal: fejlesztés → konténerizálás → CI build + image push (GHCR).
+Egyszerű full‑stack mintaalkalmazás egy Todo listához. A cél: fejlesztés -> konténerizálás -> CI build -> Docker image push (GHCR).
 
-## Komponensek
+## Felépítés
 
-- Frontend: Angular (standalone) – 2 view (lista + új/szerkesztés) + pagination
-- Backend: ASP.NET Web API – CRUD REST API
+- Frontend: Angular (standalone)
+	- 2 nézet: lista + új/szerkesztés
+	- lapozás (pagination)
+- Backend: ASP.NET Web API
+	- CRUD REST API
 - Adatbázis: MongoDB
 
-## Funkciók (user-guide)
+## Funkciók
 
-- Feladatok listázása (lapozható / pagination)
+- Feladatok listázása (lapozható)
 - Új feladat létrehozása
-- Feladat szerkesztése
+- Feladat módosítása
 - Feladat törlése
 - Állapot: nyitott / kész
 - Határidő megadása
 
 ## Futtatás Dockerrel (ajánlott)
 
-Előfeltétel: Docker Desktop fusson (Windows-on a Linux engine).
+Előfeltétel: Docker Desktop fusson (Windows-on Linux engine).
 
 ```bash
 docker compose up --build
 ```
 
+Elérhetőségek:
+
 - UI: http://localhost:8080
 - Backend health: http://localhost:5187/api/health
+- MCP endpoint: http://localhost:5190/mcp
 
-A frontend nginx reverse proxy-val hívja a backendet a `/api/*` útvonalon.
+Gyors MCP teszt (teszt kliens):
+
+```bash
+npm.cmd --prefix .\mcp-server run test:client
+```
+
+A frontend nginx reverse proxy-n keresztül hívja a backendet az `/api/*` útvonalon.
 
 Leállítás:
 
@@ -36,20 +48,95 @@ Leállítás:
 docker compose down
 ```
 
-Teljes törlés (adatbázis volume is):
+Teljes törlés (MongoDB volume is):
 
 ```bash
 docker compose down -v
 ```
 
-## Megosztás / futtatás más gépen
+## Telepítés Kubernetesre
 
-Ha a repót más gépen kell kipróbálni, az alábbi lépések követhetők:
+Kubernetes manifestek a `deployment/` mappában:
+
+- `deployment/local/`: lokálisan buildelt image-ekkel (pl. Docker Desktop Kubernetes)
+- `deployment/prod/`: GHCR image-ekkel
+
+Részletesebb leírás: [deployment/deployment_guide.md](deployment/deployment_guide.md).
 
 Előfeltételek:
 
-- Docker Desktop telepítve és fut (Windows/Mac/Linux)
-- Git telepítve (vagy a repo letöltése ZIP-ként GitHub-ról)
+- `kubectl`
+- futó lokális Kubernetes klaszter (pl. Docker Desktop Kubernetes)
+
+### Local telepítés
+
+1) Image-ek build (local tag-ekkel):
+
+```bash
+.\tools\docker_build_all.ps1
+```
+
+2) Telepítés:
+
+```bash
+kubectl apply -f .\deployment\local
+```
+
+Ellenőrzés:
+
+```bash
+kubectl -n projektfeladat-local get pods
+kubectl -n projektfeladat-local get svc
+```
+
+Elérés port-forwarddal:
+
+```bash
+kubectl -n projektfeladat-local port-forward svc/frontend 8080:80
+```
+
+- UI: http://localhost:8080
+
+Backend elérés (ha külön is szükséges):
+
+```bash
+kubectl -n projektfeladat-local port-forward svc/backend 5187:8080
+```
+
+- Backend health: http://localhost:5187/api/health
+
+MCP server elérés (ha külön is szükséges):
+
+```bash
+kubectl -n projektfeladat-local port-forward svc/mcp-server 5190:3000
+```
+
+- MCP endpoint: http://localhost:5190/mcp
+
+Törlés:
+
+```bash
+kubectl delete ns projektfeladat-local
+```
+
+### Prod telepítés (GHCR)
+
+```bash
+kubectl apply -f .\deployment\prod
+```
+
+Törlés:
+
+```bash
+kubectl delete ns projektfeladat-prod
+```
+
+## Futtatás más gépen
+
+Előfeltételek:
+
+- Docker Desktop telepítve van és fut (Windows/Mac/Linux)
+- Git telepítve (vagy repo letöltése ZIP-ként)
 
 Lépések:
 
@@ -63,7 +150,7 @@ Ellenőrzés:
 
 - UI: http://localhost:8080/todos
 - Backend health: http://localhost:5187/api/health
-- Backend todos JSON: http://localhost:5187/api/todos?page=1&pageSize=10
+- Todos JSON: http://localhost:5187/api/todos?page=1&pageSize=10
 
 Leállítás:
 
@@ -71,16 +158,16 @@ Leállítás:
 docker compose down
 ```
 
-Tipp: ha a `localhost` nem elérhető, általában a Docker engine nem fut — el kell indítani a Docker Desktopot, majd újra futtatni a `docker compose up -d` parancsot.
+Tipp: ha a `localhost` nem elérhető, tipikusan a Docker engine nem fut. El kell indítani a Docker Desktopot, majd újra le kell futtatni a compose parancsot.
 
 ## Futtatás lokálisan (Docker nélkül a FE/BE-hez)
 
-Előfeltétel:
+Előfeltételek:
 
 - .NET SDK 10
 - Node.js + npm
 
-1) MongoDB indítása (pl. csak Mongo compose-ból):
+1) MongoDB indítása (csak a mongo service):
 
 ```bash
 docker compose up -d mongo
@@ -98,6 +185,8 @@ dotnet run --project .\backend
 npm.cmd --prefix .\frontend start
 ```
 
+Elérhetőségek:
+
 - UI: http://localhost:4200
 - Backend: a konzolban kiírt port (alapból `http://localhost:5187`)
 
@@ -114,20 +203,22 @@ Windows/PowerShell: ha az `npm` futása tiltott aláírás miatt, az `npm.cmd` /
 
 Példa requestek: [backend/Backend.http](backend/Backend.http)
 
-Tipp: a `GET by id`, `PUT`, `DELETE` requesteknél a `TodoId` értéke cserélendő egy létező MongoDB ObjectId-ra (a `POST` válaszában megjelenik).
+Tipp: a `GET by id`, `PUT`, `DELETE` requesteknél a `TodoId` értékét le kell cserélni egy létező MongoDB ObjectId-ra (a `POST` válaszában megjelenik).
 
 ## CI – Docker image build + push (GHCR)
 
-A workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+Workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 
 Publikált image-ek:
 
 - `ghcr.io/akos1940/appfejlesztes-technologiak-backend:latest`
+- `ghcr.io/akos1940/appfejlesztes-technologiak-todos-service:latest`
 - `ghcr.io/akos1940/appfejlesztes-technologiak-frontend:latest`
+- `ghcr.io/akos1940/appfejlesztes-technologiak-mcp-server:latest`
 
-GitHub beállítás: **Settings → Actions → General → Workflow permissions → Read and write permissions** (különben nem tud package-et pusholni).
+GitHub beállítás: **Settings -> Actions -> General -> Workflow permissions -> Read and write permissions** (különben nem lehet package-et pusholni).
 
-CI működés:
+Működés röviden:
 
 - `pull_request`: build (push nélkül)
 - `push` a `main` ágra: build + push GHCR-re
@@ -135,6 +226,41 @@ CI működés:
 
 ## Hibaelhárítás
 
-- Ha semmi nem érhető el a `localhost`-on: ellenőrizd, hogy Docker Desktop fut-e, és a `docker compose ps` szerint a konténerek `Up` állapotban vannak.
-- Ha a docker CLI ezt írja: `dockerDesktopLinuxEngine ... cannot find the file specified`, akkor a Docker engine nem fut (indítsd el a Docker Desktopot).
+- Ha semmi nem érhető el a `localhost`-on: ellenőrizni kell, hogy Docker Desktop fut-e, és a `docker compose ps` szerint a konténerek `Up` állapotban vannak.
+- Ha a docker CLI ezt írja: `dockerDesktopLinuxEngine ... cannot find the file specified`, akkor a Docker engine nem fut (el kell indítani a Docker Desktopot).
+
+## Használat (egyszerű user guide)
+
+1) Rendszer indítása (ajánlott Dockerrel):
+
+```bash
+docker compose up --build
+```
+
+2) Felület megnyitása:
+
+- UI: http://localhost:8080
+
+3) Funkciók kipróbálása (UI):
+
+- Listázás + lapozás: a lista nézetben lapozóval lehet oldalt váltani.
+- Új feladat: az új feladat nézeten a cím/leírás kitölthető, majd mentéssel létrejön a feladat.
+- Szerkesztés: a listából kiválasztott feladat megnyitható, módosítható, majd menthető.
+- Állapot váltás (nyitott/kész): szerkesztésnél az állapot átállítható, majd mentéssel rögzíthető.
+- Határidő: határidő megadása után mentéssel tárolódik, és a feladat adatai között megjelenik.
+- Törlés: a feladat törölhető; törlés után a listából eltűnik.
+
+4) Funkciók kipróbálása (API):
+
+- A teljes CRUD-hoz példa requestek: [backend/Backend.http](backend/Backend.http)
+- Backend health: http://localhost:5187/api/health
+
+5) MCP funkció kipróbálása (ha szükséges):
+
+- MCP endpoint: http://localhost:5190/mcp
+- Gyors teszt (teszt kliens):
+
+```bash
+npm.cmd --prefix .\mcp-server run test:client
+```
 
