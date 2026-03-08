@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: projektfeladat-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      containers:
+        - name: mcp-server
+          image: ghcr.io/akos1940/appfejlesztes-technologiak-mcp-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MCP_HOST
+              value: 0.0.0.0
+            - name: MCP_PORT
+              value: "3000"
+            - name: BACKEND_BASE_URL
+              value: http://backend:8080
+            - name: MCP_ALLOWED_HOSTS
+              value: localhost,127.0.0.1,mcp-server,mcp-server.projektfeladat-prod,mcp-server.projektfeladat-prod.svc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: projektfeladat-prod
+spec:
+  selector:
+    app: mcp-server
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP

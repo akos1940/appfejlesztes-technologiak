@@ -1,7 +1,5 @@
-using Backend.Data;
-using Backend.Options;
-using Backend.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,14 +16,13 @@ builder.Services.AddCors(options =>
             .SetIsOriginAllowed(_ => true));
 });
 
-builder.Services
-    .AddOptions<MongoOptions>()
-    .Bind(builder.Configuration.GetSection(MongoOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+var todosServiceBaseUrl = builder.Configuration.GetValue<string>("TodosService:BaseUrl")
+    ?? throw new InvalidOperationException("Missing configuration: TodosService:BaseUrl");
 
-builder.Services.AddSingleton<MongoContext>();
-builder.Services.AddSingleton<TodoRepository>();
+builder.Services.AddHttpClient<TodosClient>(client =>
+{
+    client.BaseAddress = new Uri(todosServiceBaseUrl, UriKind.Absolute);
+});
 
 var app = builder.Build();
 
@@ -38,13 +35,5 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-
-// Seed sample data (only if collection is empty)
-if (builder.Configuration.GetValue("SeedData:Enabled", true))
-{
-    using var scope = app.Services.CreateScope();
-    var repo = scope.ServiceProvider.GetRequiredService<TodoRepository>();
-    await repo.EnsureSeededAsync(CancellationToken.None);
-}
 
 await app.RunAsync();

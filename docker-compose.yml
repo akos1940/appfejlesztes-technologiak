@@ -7,6 +7,21 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  todos-service:
+    build:
+      context: ./todos-service
+      dockerfile: Dockerfile
+    container_name: app-todos-service
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - Mongo__ConnectionString=mongodb://mongo:27017
+      - Mongo__DatabaseName=appdb
+      - Mongo__TodosCollectionName=todos
+    ports:
+      - "5188:8080"
+    depends_on:
+      - mongo
+
   backend:
     build:
       context: ./backend
@@ -14,13 +29,26 @@ services:
     container_name: app-backend
     environment:
       - ASPNETCORE_URLS=http://+:8080
-      - Mongo__ConnectionString=mongodb://mongo:27017
-      - Mongo__DatabaseName=appdb
-      - Mongo__TodosCollectionName=todos
+      - TodosService__BaseUrl=http://todos-service:8080/
     ports:
       - "5187:8080"
     depends_on:
-      - mongo
+      - todos-service
+
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: app-mcp-server
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3000
+      - BACKEND_BASE_URL=http://backend:8080
+      - MCP_ALLOWED_HOSTS=localhost,127.0.0.1
+    ports:
+      - "5190:3000"
+    depends_on:
+      - backend
 
   frontend:
     build:

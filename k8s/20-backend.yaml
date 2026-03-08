@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: projektfeladat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/akos1940/appfejlesztes-technologiak-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: TodosService__BaseUrl
+              value: http://todos-service:8080/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: projektfeladat
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

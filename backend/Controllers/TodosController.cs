@@ -1,6 +1,7 @@
 using Backend.Models;
-using Backend.Repositories;
+using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Json;
 
 namespace Backend.Controllers;
 
@@ -8,75 +9,133 @@ namespace Backend.Controllers;
 [Route("api/todos")]
 public sealed class TodosController : ControllerBase
 {
-    private readonly TodoRepository _repository;
+    private readonly TodosClient _client;
 
-    public TodosController(TodoRepository repository)
+    public TodosController(TodosClient client)
     {
-        _repository = repository;
+        _client = client;
     }
 
     [HttpGet]
     public async Task<ActionResult<PagedResponse<TodoItem>>> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        var (items, total) = await _repository.GetPagedAsync(page, pageSize, ct);
-        return Ok(new PagedResponse<TodoItem>
+        HttpResponseMessage resp;
+        try
         {
-            Items = items,
-            Total = total,
-            Page = Math.Max(1, page),
-            PageSize = Math.Clamp(pageSize, 1, 100),
-        });
+            resp = await _client.GetPagedAsync(page, pageSize, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503);
+        }
+        if (!resp.IsSuccessStatusCode)
+        {
+            return StatusCode((int)resp.StatusCode);
+        }
+
+        var payload = await resp.Content.ReadFromJsonAsync<PagedResponse<TodoItem>>(cancellationToken: ct);
+        return payload is null ? StatusCode(502) : Ok(payload);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<TodoItem>> GetById(string id, CancellationToken ct)
     {
-        var item = await _repository.GetByIdAsync(id, ct);
-        return item is null ? NotFound() : Ok(item);
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _client.GetByIdAsync(id, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503);
+        }
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return StatusCode((int)resp.StatusCode);
+        }
+
+        var payload = await resp.Content.ReadFromJsonAsync<TodoItem>(cancellationToken: ct);
+        return payload is null ? StatusCode(502) : Ok(payload);
     }
 
     [HttpPost]
     public async Task<ActionResult<TodoItem>> Create([FromBody] CreateTodoRequest request, CancellationToken ct)
     {
-        var item = new TodoItem
+        HttpResponseMessage resp;
+        try
         {
-            Title = request.Title,
-            Description = request.Description,
-            IsCompleted = request.IsCompleted,
-            DueAt = request.DueAt,
-            CreatedAt = DateTime.UtcNow,
-        };
+            resp = await _client.CreateAsync(request, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503);
+        }
+        if (!resp.IsSuccessStatusCode)
+        {
+            return StatusCode((int)resp.StatusCode);
+        }
 
-        await _repository.CreateAsync(item, ct);
-        return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
+        var payload = await resp.Content.ReadFromJsonAsync<TodoItem>(cancellationToken: ct);
+        if (payload is null)
+        {
+            return StatusCode(502);
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = payload.Id }, payload);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Replace(string id, [FromBody] UpdateTodoRequest request, CancellationToken ct)
     {
-        var existing = await _repository.GetByIdAsync(id, ct);
-        if (existing is null)
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _client.ReplaceAsync(id, request, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503);
+        }
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             return NotFound();
         }
 
-        var updated = new TodoItem
+        if (!resp.IsSuccessStatusCode)
         {
-            Title = request.Title,
-            Description = request.Description,
-            IsCompleted = request.IsCompleted,
-            DueAt = request.DueAt,
-            CreatedAt = existing.CreatedAt,
-        };
+            return StatusCode((int)resp.StatusCode);
+        }
 
-        await _repository.ReplaceAsync(id, updated, ct);
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
-        var ok = await _repository.DeleteAsync(id, ct);
-        return ok ? NoContent() : NotFound();
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _client.DeleteAsync(id, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(503);
+        }
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return StatusCode((int)resp.StatusCode);
+        }
+
+        return NoContent();
     }
 }

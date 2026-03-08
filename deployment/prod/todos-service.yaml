@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todos-service
+  namespace: projektfeladat-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todos-service
+  template:
+    metadata:
+      labels:
+        app: todos-service
+    spec:
+      containers:
+        - name: todos-service
+          image: ghcr.io/akos1940/appfejlesztes-technologiak-todos-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: Mongo__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: projektfeladat-secrets-prod
+                  key: mongodb-url
+            - name: Mongo__DatabaseName
+              value: appdb
+            - name: Mongo__TodosCollectionName
+              value: todos
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todos-service
+  namespace: projektfeladat-prod
+spec:
+  selector:
+    app: todos-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

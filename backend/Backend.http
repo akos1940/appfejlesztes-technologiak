@@ -1,49 +1,49 @@
 @Backend_HostAddress = http://localhost:5187
 
-### Health
+### Health / állapot
 GET {{Backend_HostAddress}}/api/health
 Accept: application/json
 
 ###
 
-### List todos (paged)
+### Feladatok listázása (lapozva)
 GET {{Backend_HostAddress}}/api/todos?page=1&pageSize=5
 Accept: application/json
 
 ###
 
-### Create todo
+### Új feladat létrehozása
 POST {{Backend_HostAddress}}/api/todos
 Content-Type: application/json
 
 {
-	"title": "Bevásárlás",
-	"description": "tej, kenyér, tojás",
+	"title": "Határidős munka",
+	"description": "Leadandó feladat elkészítése a határidő előtt",
 	"isCompleted": false,
 	"dueAt": null
 }
 
 ###
 
-### Get todo by id
+### Feladat lekérése azonosító alapján
 @TodoId = REPLACE_WITH_ID
 GET {{Backend_HostAddress}}/api/todos/{{TodoId}}
 Accept: application/json
 
 ###
 
-### Update todo (replace)
+### Feladat frissítése (teljes csere / PUT)
 PUT {{Backend_HostAddress}}/api/todos/{{TodoId}}
 Content-Type: application/json
 
 {
-	"title": "Bevásárlás (frissítve)",
-	"description": "tej, kenyér, tojás, alma",
+	"title": "Határidős munka (frissítve)",
+	"description": "Utolsó ellenőrzés, feltöltés / leadás",
 	"isCompleted": false,
 	"dueAt": null
 }
 
 ###
 
-### Delete todo
+### Feladat törlése
 DELETE {{Backend_HostAddress}}/api/todos/{{TodoId}}

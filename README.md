@@ -15,7 +15,7 @@ Egyszerű full-stack példa alkalmazás (Todo lista) e2e folyamattal: fejleszté
 - Feladat szerkesztése
 - Feladat törlése
 - Állapot: nyitott / kész
-- Határidő megadása (opcionális)
+- Határidő megadása
 
 ## Futtatás Dockerrel (ajánlott)
 
@@ -28,7 +28,7 @@ docker compose up --build
 - UI: http://localhost:8080
 - Backend health: http://localhost:5187/api/health
 
-Megjegyzés: a frontend nginx reverse proxy-val hívja a backendet a `/api/*` útvonalon.
+A frontend nginx reverse proxy-val hívja a backendet a `/api/*` útvonalon.
 
 Leállítás:
 
@@ -44,7 +44,7 @@ docker compose down -v
 
 ## Megosztás / futtatás más gépen
 
-Ha megosztod a repót valakivel, így tudja kipróbálni a saját gépén:
+Ha a repót más gépen kell kipróbálni, az alábbi lépések követhetők:
 
 Előfeltételek:
 
@@ -71,7 +71,7 @@ Leállítás:
 docker compose down
 ```
 
-Tipp: ha a `localhost` nem elérhető, általában a Docker engine nem fut — indítsa el a Docker Desktopot, majd futtassa újra a `docker compose up -d` parancsot.
+Tipp: ha a `localhost` nem elérhető, általában a Docker engine nem fut — el kell indítani a Docker Desktopot, majd újra futtatni a `docker compose up -d` parancsot.
 
 ## Futtatás lokálisan (Docker nélkül a FE/BE-hez)
 
@@ -101,7 +101,7 @@ npm.cmd --prefix .\frontend start
 - UI: http://localhost:4200
 - Backend: a konzolban kiírt port (alapból `http://localhost:5187`)
 
-Megjegyzés (Windows/PowerShell): ha az `npm` futása tiltott aláírás miatt, használd az `npm.cmd` / `npx.cmd` parancsot.
+Windows/PowerShell: ha az `npm` futása tiltott aláírás miatt, az `npm.cmd` / `npx.cmd` parancs használható.
 
 ## API végpontok
 
@@ -114,7 +114,7 @@ Megjegyzés (Windows/PowerShell): ha az `npm` futása tiltott aláírás miatt, 
 
 Példa requestek: [backend/Backend.http](backend/Backend.http)
 
-Tipp: a `GET by id`, `PUT`, `DELETE` requesteknél a `TodoId` értékét cseréld le egy létező MongoDB ObjectId-ra (a `POST` válaszában megkapod).
+Tipp: a `GET by id`, `PUT`, `DELETE` requesteknél a `TodoId` értéke cserélendő egy létező MongoDB ObjectId-ra (a `POST` válaszában megjelenik).
 
 ## CI – Docker image build + push (GHCR)
 

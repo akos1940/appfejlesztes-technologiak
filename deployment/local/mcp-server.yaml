@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: projektfeladat-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      containers:
+        - name: mcp-server
+          image: projektfeladat-mcp-server:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MCP_HOST
+              value: 0.0.0.0
+            - name: MCP_PORT
+              value: "3000"
+            - name: BACKEND_BASE_URL
+              value: http://backend:8080
+            - name: MCP_ALLOWED_HOSTS
+              value: localhost,127.0.0.1,mcp-server,mcp-server.projektfeladat-local,mcp-server.projektfeladat-local.svc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: projektfeladat-local
+spec:
+  selector:
+    app: mcp-server
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP

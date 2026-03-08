@@ -1,8 +1,8 @@
-using Backend.Data;
-using Backend.Models;
 using MongoDB.Driver;
+using TodosService.Data;
+using TodosService.Models;
 
-namespace Backend.Repositories;
+namespace TodosService.Repositories;
 
 public sealed class TodoRepository
 {
@@ -65,6 +65,7 @@ public sealed class TodoRepository
     {
         var desiredSeedTitles = new[] { "Bevásárlás", "Számla befizetés", "Edzés", "Határidős munka" };
 
+        // Régebbi mintaadatok (cím/leírás), amiket érdemes kitakarítani.
         var obsoleteSeedTitles = new[] { "tej", "kenyér", "tojás", "alma", "Tanulás", "Takarítás", "Számlák befizetése" };
         var obsoleteSeedDescriptions = new[]
         {
@@ -83,6 +84,7 @@ public sealed class TodoRepository
             .Limit(1)
             .AnyAsync(ct);
 
+        // Üres gyűjteménynél beszúrjuk az alap feladatokat.
         if (!anyDocumentsExist)
         {
             var now = DateTime.UtcNow;
@@ -100,6 +102,8 @@ public sealed class TodoRepository
             return;
         }
 
+        // Régi seed elemek törlése (a felhasználói elemeket nem bántjuk).
+        // 1) Régi mintaelemek törlése ismert leírás alapján.
         if (obsoleteSeedDescriptions.Length > 0)
         {
             await _context.Todos.DeleteManyAsync(
@@ -107,6 +111,7 @@ public sealed class TodoRepository
                 ct);
         }
 
+        // 2) Korábbi seed elemek törlése, amik már nincsenek az alap listában.
         var titlesToRemove = managedSeedTitles
             .Where(t => !desiredSeedTitles.Contains(t, StringComparer.OrdinalIgnoreCase))
             .ToArray();
@@ -120,10 +125,12 @@ public sealed class TodoRepository
             await _context.Todos.DeleteManyAsync(removeFilter, ct);
         }
 
+        // 3) Régi, cím alapú seed maradványok törlése (ha léteznek).
         await _context.Todos.DeleteManyAsync(
             Builders<TodoItem>.Filter.In(x => x.Title, new[] { "tej", "kenyér", "tojás", "alma" }),
             ct);
 
+        // Hiányzó alap feladatok pótlása (a felhasználói elemekhez nem nyúlunk).
         var existingDesiredTitles = await _context.Todos
             .Find(Builders<TodoItem>.Filter.In(x => x.Title, desiredSeedTitles))
             .Project(x => x.Title)

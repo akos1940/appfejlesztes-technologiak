@@ -46,6 +46,46 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Todos-service meta
+        id: meta_todos_service
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-todos-service
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build & push todos-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./todos-service
+          file: ./todos-service/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_todos_service.outputs.tags }}
+          labels: ${{ steps.meta_todos_service.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: MCP server meta
+        id: meta_mcp_server
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-mcp-server
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build & push mcp-server
+        uses: docker/build-push-action@v6
+        with:
+          context: ./mcp-server
+          file: ./mcp-server/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_mcp_server.outputs.tags }}
+          labels: ${{ steps.meta_mcp_server.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Frontend meta
         id: meta_frontend
         uses: docker/metadata-action@v5
