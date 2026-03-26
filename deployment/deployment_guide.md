@@ -54,3 +54,68 @@ kubectl -n projektfeladat-local port-forward svc/mcp-server 5190:3000
 - UI: http://localhost:8080
 - Backend health: http://localhost:5187/api/health
 - MCP endpoint: http://localhost:5190/mcp
+
+## 5-ös szint: Helm + ArgoCD
+
+Ebben a kiegészítésben:
+
+- MongoDB Helm charttal települ a helyi klaszterre.
+- A többi komponens ArgoCD Application-ökön keresztül a repóból automatikusan deployolódik és syncelődik.
+
+### 1) ArgoCD manuális telepítése
+
+Példa telepítés (upstream install manifest):
+
+```powershell
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+ArgoCD UI elérés (opcionális):
+
+```powershell
+kubectl -n argocd port-forward svc/argocd-server 8081:443
+```
+
+Ekkor a UI: https://localhost:8081
+
+### 2) MongoDB telepítése Helm charttal (local namespace)
+
+Bitnami chart használata, a service név `mongo` marad, így a meglévő `mongodb://mongo:27017` connection string változatlanul működik.
+
+```powershell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm upgrade --install mongo bitnami/mongodb \
+	--namespace projektfeladat-local \
+	--create-namespace \
+	-f .\deployment\helm\mongodb-local-values.yaml
+```
+
+### 3) ArgoCD Application-ök telepítése
+
+Az Application manifestek a repóban: `deployment/argocd/`.
+
+```powershell
+kubectl apply -f .\deployment\argocd
+```
+
+Mit deployol ArgoCD:
+
+- `projektfeladat-local` komponensek a `deployment/local/` útvonalról, de a `mongo.yaml` kizárva (mert azt Helm kezeli).
+- `projektfeladat-prod` komponensek a `deployment/prod/` útvonalról.
+
+Mindkét Application `automated` sync policy-val van beállítva (`prune` + `selfHeal`).
+
+### 4) Ellenőrzés
+
+```powershell
+kubectl get applications -n argocd
+kubectl -n projektfeladat-local get pods
+kubectl -n projektfeladat-prod get pods
+```
+
+### Megjegyzések
+
+- A `docker-compose.yml` továbbra is fejlesztési/gyors teszt célra ajánlott.
+- Prod image-ek GHCR-ről jönnek (`IfNotPresent`), local környezetben pedig helyi buildelt image-eket használ a deployment (`Never`).

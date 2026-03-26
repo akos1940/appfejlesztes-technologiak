@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: projektfeladat-local
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/akos1940/appfejlesztes-technologiak.git
+    targetRevision: HEAD
+    path: deployment/local
+    directory:
+      recurse: true
+      exclude: "{mongo.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: projektfeladat-local
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
