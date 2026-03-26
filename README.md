@@ -61,11 +61,14 @@ Kubernetes manifestek a `deployment/` mappában:
 - `deployment/local/`: lokálisan buildelt image-ekkel (pl. Docker Desktop Kubernetes)
 - `deployment/prod/`: GHCR image-ekkel
 
+Az 5-ös szintű kiegészítésben a local MongoDB Helm charttal települ, a többi komponens pedig ArgoCD Application-ökön keresztül syncelődik a repóból.
+
 Részletesebb leírás: [deployment/deployment_guide.md](deployment/deployment_guide.md).
 
 Előfeltételek:
 
 - `kubectl`
+- `helm` (5-ös szinthez)
 - futó lokális Kubernetes klaszter (pl. Docker Desktop Kubernetes)
 
 ### Local telepítés
@@ -130,6 +133,13 @@ Törlés:
 ```bash
 kubectl delete ns projektfeladat-prod
 ```
+
+### 5-ös szint (Helm + ArgoCD)
+
+- ArgoCD manuális telepítés + Application alapú automatikus sync
+- MongoDB Helm chart telepítés local namespace-be
+
+Lépésről lépésre: [deployment/deployment_guide.md](deployment/deployment_guide.md).
 
 ## Futtatás más gépen
 
