@@ -161,7 +161,7 @@ kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
-ArgoCD Application-ök alkalmazása:
+ArgoCD Applikációk alkalmazása:
 
 ```bash
 kubectl apply -f .\deployment\argocd\local-application.yaml
@@ -193,6 +193,11 @@ Workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 - Automatikus buildek main branchre
 - Tagging: `:sha-<commit>` + `:latest`
 - GHCR repository: [ghcr.io/akos1940](https://ghcr.io/akos1940)
+
+Előfeltételek:
+
+- Docker Desktop telepítve van és fut (Windows/Mac/Linux)
+- Git telepítve (vagy repo letöltése ZIP-ként)
 
 Lépések:
 
