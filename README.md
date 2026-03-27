@@ -61,14 +61,10 @@ Kubernetes manifestek a `deployment/` mappában:
 - `deployment/local/`: lokálisan buildelt image-ekkel (pl. Docker Desktop Kubernetes)
 - `deployment/prod/`: GHCR image-ekkel
 
-Az 5-ös szintű kiegészítésben a local MongoDB Helm charttal települ, a többi komponens pedig ArgoCD Application-ökön keresztül syncelődik a repóból.
-
-Részletesebb leírás: [deployment/deployment_guide.md](deployment/deployment_guide.md).
-
 Előfeltételek:
 
 - `kubectl`
-- `helm` (5-ös szinthez)
+- `helm`
 - futó lokális Kubernetes klaszter (pl. Docker Desktop Kubernetes)
 
 ### Local telepítés
@@ -128,25 +124,75 @@ kubectl delete ns projektfeladat-local
 kubectl apply -f .\deployment\prod
 ```
 
+Ellenőrzés:
+
+```bash
+kubectl -n projektfeladat-prod get pods
+kubectl -n projektfeladat-prod get svc
+```
+
+Port-forward a prod namespacebel ellérkezéshez (az előző local port-forward leíráshoz hasonlóan):
+
+```bash
+kubectl -n projektfeladat-prod port-forward svc/frontend 8080:80
+```
+
 Törlés:
 
 ```bash
 kubectl delete ns projektfeladat-prod
 ```
 
-### 5-ös szint (Helm + ArgoCD)
+### Helm + ArgoCD
 
-- ArgoCD manuális telepítés + Application alapú automatikus sync
-- MongoDB Helm chart telepítés local namespace-be
+Itt a MongoDB Helm charttal megy, az alkalmazás többi része pedig ArgoCD-val szinkronizál a repóból.
 
-Lépésről lépésre: [deployment/deployment_guide.md](deployment/deployment_guide.md).
+Helm telepítés (MongoDB local namespace-be):
 
-## Futtatás más gépen
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install mongo bitnami/mongodb -n projektfeladat-local --values .\deployment\helm\mongodb-local-values.yaml
+```
 
-Előfeltételek:
+ArgoCD telepítés:
 
-- Docker Desktop telepítve van és fut (Windows/Mac/Linux)
-- Git telepítve (vagy repo letöltése ZIP-ként)
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+ArgoCD Application-ök alkalmazása:
+
+```bash
+kubectl apply -f .\deployment\argocd\local-application.yaml
+kubectl apply -f .\deployment\argocd\prod-application.yaml
+```
+
+Ellenőrzés:
+
+```bash
+kubectl get applications -A
+```
+
+Részletes leírás: [deployment/deployment_guide.md](deployment/deployment_guide.md)
+
+A projekt teljes CI/CD automatizálása GitHub Actions workflow-nal:
+
+```
+Push to main
+         ↓
+    CI Workflow
+         ↓
+Build image-ek (backend, frontend, todos-service, mcp-server)
+         ↓
+Push to GHCR (ghcr.io/akos1940/...)
+```
+
+Workflow: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+
+- Automatikus buildek main branchre
+- Tagging: `:sha-<commit>` + `:latest`
+- GHCR repository: [ghcr.io/akos1940](https://ghcr.io/akos1940)
 
 Lépések:
 
